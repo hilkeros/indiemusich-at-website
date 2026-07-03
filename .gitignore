@@ -1,0 +1,13 @@
+node_modules/
+*.db
+data/
+dist/
+build/
+test-results/
+.svelte-kit/
+.DS_Store
+.env
+public/
+!.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
