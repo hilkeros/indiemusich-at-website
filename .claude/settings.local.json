@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:northsky.social)",
+      "WebFetch(domain:semble.so)",
+      "WebFetch(domain:api.semble.so)",
+      "WebFetch(domain:bsky.social)",
+      "Bash(npx svelte-check:*)"
+    ]
+  }
+}
