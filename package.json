@@ -8,8 +8,7 @@
     "build": "vp build",
     "check": "vp check && svelte-check",
     "format": "vp format",
-    "test": "vp test",
-    "prepare": "vp config"
+    "test": "vp test"
   },
   "dependencies": {
     "@hatk/hatk": "^0.0.1-alpha.42",
@@ -24,10 +23,5 @@
     "svelte-check": "^4",
     "typescript": "^5",
     "vite-plus": "^0.1.11"
-  },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-  },
-  "packageManager": "npm@11.18.0"
+  }
 }

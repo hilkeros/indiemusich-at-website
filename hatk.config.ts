@@ -21,7 +21,7 @@ export default defineConfig({
         ? [
             {
               client_id: `https://${prodDomain}/oauth-client-metadata.json`,
-              client_name: "my-hatk-app",
+              client_name: "indiemusi.ch",
               scope: "atproto",
               redirect_uris: [
                 `https://${prodDomain}/oauth/callback`,
@@ -32,7 +32,7 @@ export default defineConfig({
         : []),
       {
         client_id: "http://127.0.0.1:3000/oauth-client-metadata.json",
-        client_name: "my-hatk-app",
+        client_name: "indiemusi.ch",
         scope: "atproto",
         redirect_uris: ["http://127.0.0.1:3000/oauth/callback"],
       },
