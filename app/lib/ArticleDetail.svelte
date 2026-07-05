@@ -54,10 +54,20 @@
     </a>
   </div>
 
+
   <div class="article-body">
     {#each article.blocks as block}
       {#if block.type === "break"}
         <div class="block-break"></div>
+      {:else if block.type === "image"}
+        <figure class="block-image" class:center={block.center}>
+          <img
+            src={block.url}
+            alt={block.alt}
+            loading="lazy"
+            style={block.placeholder ? `background-image: url('${block.placeholder}'); background-size: cover;` : ""}
+          />
+        </figure>
       {:else if block.type === "heading"}
         {#if block.level <= 2}
           <h2 class="block-heading">{@render spans(block.spans)}</h2>

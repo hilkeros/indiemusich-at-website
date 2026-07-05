@@ -55,13 +55,22 @@ export interface HeadingBlock {
   spans: TextSpan[];
 }
 
+export interface ImageBlock {
+  type: "image";
+  url: string;
+  alt: string;
+  placeholder?: string;
+  center?: boolean;
+}
+
 export interface BreakBlock {
   type: "break";
 }
 
-export type Block = TextBlock | HeadingBlock | BreakBlock;
+export type Block = TextBlock | HeadingBlock | ImageBlock | BreakBlock;
 
 export interface ArticleDetail extends Article {
+  coverImage?: string;
   blocks: Block[];
 }
 
@@ -81,6 +90,14 @@ export interface Resource {
 
 function extractRkey(uri: string): string {
   return uri.split("/").pop() ?? "";
+}
+
+function blobUrl(cid: string): string {
+  return `${PDS}/xrpc/com.atproto.sync.getBlob?did=${DID}&cid=${cid}`;
+}
+
+function extractBlobCid(blob: any): string | null {
+  return blob?.ref?.["$link"] ?? null;
 }
 
 function pubRkey(siteUri: string): string {
@@ -161,6 +178,20 @@ function parseContent(content: any): Block[] {
     for (const page of content.pages ?? []) {
       for (const entry of page.blocks ?? []) {
         const b = entry.block ?? entry;
+        // Image block
+        const imageCid = extractBlobCid(b.image ?? b.blob ?? b.attrs?.blob);
+        if (b.$type === "pub.leaflet.blocks.image" || imageCid) {
+          if (imageCid) {
+            blocks.push({
+              type: "image",
+              url: blobUrl(imageCid),
+              alt: b.alt ?? b.attrs?.alt ?? "",
+              placeholder: b.placeholder ?? b.attrs?.placeholder,
+              center: true,
+            });
+          }
+          continue;
+        }
         const plaintext: string = b.plaintext ?? b.text ?? "";
         if (!plaintext.trim()) {
           blocks.push({ type: "break" });
@@ -181,6 +212,20 @@ function parseContent(content: any): Block[] {
   } else {
     // blog.pckt.content or unknown — flat items array
     for (const item of content.items ?? []) {
+      // Image block: blog.pckt.block.image
+      if (item.$type === "blog.pckt.block.image") {
+        const cid = extractBlobCid(item.attrs?.blob);
+        if (cid) {
+          blocks.push({
+            type: "image",
+            url: blobUrl(cid),
+            alt: item.attrs?.alt ?? "",
+            placeholder: item.attrs?.placeholder,
+            center: item.attrs?.align === "center",
+          });
+        }
+        continue;
+      }
       const plaintext: string = item.plaintext ?? item.text ?? "";
       if (!plaintext.trim()) {
         blocks.push({ type: "break" });
@@ -262,6 +307,9 @@ export async function getArticleDetail(key: string): Promise<ArticleDetail | nul
     lang: pub.lang,
     externalUrl: `${pub.baseUrl}/${path.replace(/^\//, "")}`,
     source: pub.source,
+    coverImage: extractBlobCid(rec.value.coverImage)
+      ? blobUrl(extractBlobCid(rec.value.coverImage)!)
+      : undefined,
     blocks: parseContent(rec.value.content),
   };
 }
