@@ -9,7 +9,8 @@
         "type": "object",
         "required": ["content"],
         "properties": {
-          "content": { "type": "unknown" }
+          "content": { "type": "unknown" },
+          "parentCard": { "type": "unknown" }
         }
       }
     }

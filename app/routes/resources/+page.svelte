@@ -25,12 +25,17 @@
             <div class="resource-image-placeholder">🔗</div>
           {/if}
           <div class="resource-body">
-            {#if resource.siteName}
-              <div class="resource-site">{resource.siteName}</div>
-            {/if}
-            <div class="resource-title">{resource.title}</div>
-            {#if resource.description}
-              <div class="resource-desc">{resource.description}</div>
+            <div class="resource-preview">
+              {#if resource.siteName}
+                <div class="resource-site">{resource.siteName}</div>
+              {/if}
+              <div class="resource-title">{resource.title}</div>
+              {#if !resource.note && resource.description}
+                <div class="resource-desc">{resource.description}</div>
+              {/if}
+            </div>
+            {#if resource.note}
+              <div class="resource-note">{resource.note}</div>
             {/if}
           </div>
         </a>

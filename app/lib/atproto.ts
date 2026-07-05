@@ -86,6 +86,7 @@ export interface Resource {
   siteName: string;
   imageUrl?: string;
   addedAt: string;
+  note?: string;
 }
 
 // ── Internal helpers ─────────────────────────────
@@ -285,38 +286,50 @@ export async function getArticleDetail(key: string): Promise<ArticleDetail | nul
 }
 
 export async function getResources(): Promise<Resource[]> {
-  const result = await callXrpc("dev.hatk.getRecords", {
-    collection: "network.cosmik.collectionLink",
-    limit: 100,
-  } as any);
-  const links = result.items as any[];
-  const relevant = links.filter((l) => l.value?.collection?.uri === SEMBLE_COLLECTION_URI);
-  const resources: Resource[] = [];
+  const [linksResult, cardsResult] = await Promise.all([
+    callXrpc("dev.hatk.getRecords", {
+      collection: "network.cosmik.collectionLink",
+      limit: 100,
+    } as any),
+    callXrpc("dev.hatk.getRecords", { collection: "network.cosmik.card", limit: 100 } as any),
+  ]);
 
-  await Promise.all(
-    relevant.map(async (link) => {
-      const cardUri = link.value?.card?.uri;
-      if (!cardUri) return;
-      let cardResult: any;
-      try {
-        cardResult = await callXrpc("dev.hatk.getRecord", { uri: cardUri });
-      } catch {
-        return;
-      }
-      const card = cardResult?.record;
-      if (!card?.value?.content?.url) return;
-      const meta = card.value.content.metadata ?? {};
-      resources.push({
-        uri: card.uri,
-        url: card.value.content.url,
-        title: meta.title ?? card.value.content.url,
-        description: meta.description ?? "",
-        siteName: meta.siteName ?? "",
-        imageUrl: meta.imageUrl ?? undefined,
-        addedAt: link.value.addedAt,
-      });
-    }),
-  );
+  // Find collectionLinks belonging to our Semble collection → uri → addedAt
+  const collectionLinks = new Map<string, string>(); // cardUri → addedAt
+  for (const l of linksResult.items as any[]) {
+    if (l.value?.collection?.uri === SEMBLE_COLLECTION_URI && l.value?.card?.uri) {
+      collectionLinks.set(l.value.card.uri, l.value.addedAt);
+    }
+  }
+
+  // Split cards into URL cards and note cards
+  const urlCards = new Map<string, any>(); // uri → card item
+  const notes = new Map<string, string>(); // parentCard uri → note text
+  for (const card of cardsResult.items as any[]) {
+    const content = card.value?.content;
+    if (content?.["$type"] === "network.cosmik.card#noteContent" && card.value?.parentCard?.uri) {
+      notes.set(card.value.parentCard.uri, content.text ?? "");
+    } else if (content?.["$type"] === "network.cosmik.card#urlContent") {
+      urlCards.set(card.uri, card);
+    }
+  }
+
+  const resources: Resource[] = [];
+  for (const [cardUri, addedAt] of collectionLinks) {
+    const card = urlCards.get(cardUri);
+    if (!card?.value?.content?.url) continue;
+    const meta = card.value.content.metadata ?? {};
+    resources.push({
+      uri: card.uri,
+      url: card.value.content.url,
+      title: meta.title ?? card.value.content.url,
+      description: meta.description ?? "",
+      siteName: meta.siteName ?? "",
+      imageUrl: meta.imageUrl ?? undefined,
+      addedAt,
+      note: notes.get(cardUri),
+    });
+  }
 
   return resources.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
 }

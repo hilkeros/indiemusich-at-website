@@ -120,7 +120,8 @@ CREATE TABLE "network.cosmik.card" (
   cid TEXT,
   did TEXT NOT NULL,
   indexed_at TEXT NOT NULL,
-  content TEXT NOT NULL
+  content TEXT NOT NULL,
+  parent_card TEXT
 );
 
 CREATE TABLE "network.cosmik.collectionLink" (
