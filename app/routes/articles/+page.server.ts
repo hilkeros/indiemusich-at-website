@@ -1,7 +1,9 @@
-import { getLeafletArticles, getPcktArticles } from "$lib/atproto";
+import { getAllArticles } from "$lib/atproto";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async () => {
-  const [en, de] = await Promise.all([getLeafletArticles(), getPcktArticles()]);
+  const articles = await getAllArticles();
+  const en = articles.filter((a) => a.source === "leaflet");
+  const de = articles.filter((a) => a.source === "pckt");
   return { en, de };
 };

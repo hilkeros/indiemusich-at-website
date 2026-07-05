@@ -114,3 +114,36 @@ CREATE TABLE _repos (
   retry_count INTEGER NOT NULL DEFAULT 0,
   retry_after INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE "network.cosmik.card" (
+  uri TEXT PRIMARY KEY,
+  cid TEXT,
+  did TEXT NOT NULL,
+  indexed_at TEXT NOT NULL,
+  content TEXT NOT NULL
+);
+
+CREATE TABLE "network.cosmik.collectionLink" (
+  uri TEXT PRIMARY KEY,
+  cid TEXT,
+  did TEXT NOT NULL,
+  indexed_at TEXT NOT NULL,
+  collection TEXT,
+  card TEXT,
+  added_at TEXT NOT NULL
+);
+
+CREATE TABLE "site.standard.document" (
+  uri TEXT PRIMARY KEY,
+  cid TEXT,
+  did TEXT NOT NULL,
+  indexed_at TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  published_at TEXT NOT NULL,
+  path TEXT,
+  site TEXT,
+  tags TEXT,
+  content TEXT,
+  cover_image TEXT
+);

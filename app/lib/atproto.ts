@@ -1,3 +1,5 @@
+import { callXrpc } from "$hatk";
+
 const DID = "did:plc:giaakn4axmr5dhfnvha6r6wn";
 const PDS = "https://northsky.social";
 const SEMBLE_COLLECTION_URI = `at://${DID}/network.cosmik.collection/3madpvj3qt42z`;
@@ -101,37 +103,11 @@ function extractBlobCid(blob: any): string | null {
 }
 
 function pubRkey(siteUri: string): string {
-  // "at://did:.../site.standard.publication/3xxx" → "3xxx"
   return extractRkey(siteUri);
 }
 
 function pubInfo(siteUri: string) {
   return PUBLICATIONS[pubRkey(siteUri)] ?? null;
-}
-
-async function listRecords(collection: string, limit = 50): Promise<any[]> {
-  try {
-    const res = await fetch(
-      `${PDS}/xrpc/com.atproto.repo.listRecords?repo=${DID}&collection=${encodeURIComponent(collection)}&limit=${limit}`,
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.records ?? [];
-  } catch {
-    return [];
-  }
-}
-
-async function getRecord(collection: string, key: string): Promise<any | null> {
-  try {
-    const res = await fetch(
-      `${PDS}/xrpc/com.atproto.repo.getRecord?repo=${DID}&collection=${encodeURIComponent(collection)}&rkey=${key}`,
-    );
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
 }
 
 // Applies byte-offset facets to a plaintext string → array of styled spans
@@ -244,17 +220,17 @@ function parseContent(content: any): Block[] {
   return blocks;
 }
 
-// Builds an Article from a raw site.standard.document record (no content fetched)
-function articleFromRecord(r: any): Article | null {
-  const v = r.value;
-  if (!v.title || !v.publishedAt || !v.site) return null;
+// Builds an Article from a hatk record item (has { uri, value: { ... } })
+function articleFromItem(item: any): Article | null {
+  const v = item.value;
+  if (!v?.title || !v?.publishedAt || !v?.site) return null;
   const pub = pubInfo(v.site);
   if (!pub) return null;
-  const key = extractRkey(r.uri);
+  const key = extractRkey(item.uri);
   const path: string = v.path ?? key;
   return {
     rkey: key,
-    uri: r.uri,
+    uri: item.uri,
     title: v.title.trim(),
     description: v.description ?? "",
     publishedAt: v.publishedAt,
@@ -267,32 +243,26 @@ function articleFromRecord(r: any): Article | null {
 
 // ── Public API ───────────────────────────────────
 
-export async function getLeafletArticles(): Promise<Article[]> {
-  const records = await listRecords("site.standard.document");
-  return records
-    .map(articleFromRecord)
-    .filter((a): a is Article => a !== null && a.source === "leaflet")
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-}
-
-export async function getPcktArticles(): Promise<Article[]> {
-  const records = await listRecords("site.standard.document");
-  return records
-    .map(articleFromRecord)
-    .filter((a): a is Article => a !== null && a.source === "pckt")
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-}
-
 export async function getAllArticles(): Promise<Article[]> {
-  const records = await listRecords("site.standard.document");
-  return records
-    .map(articleFromRecord)
+  const result = await callXrpc("dev.hatk.getRecords", {
+    collection: "site.standard.document",
+    limit: 100,
+  } as any);
+  return (result.items as any[])
+    .map(articleFromItem)
     .filter((a): a is Article => a !== null)
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }
 
 export async function getArticleDetail(key: string): Promise<ArticleDetail | null> {
-  const rec = await getRecord("site.standard.document", key);
+  const uri = `at://${DID}/site.standard.document/${key}`;
+  let result: any;
+  try {
+    result = await callXrpc("dev.hatk.getRecord", { uri });
+  } catch {
+    return null;
+  }
+  const rec = result?.record;
   if (!rec?.value?.title || !rec.value.site) return null;
   const pub = pubInfo(rec.value.site);
   if (!pub) return null;
@@ -315,15 +285,25 @@ export async function getArticleDetail(key: string): Promise<ArticleDetail | nul
 }
 
 export async function getResources(): Promise<Resource[]> {
-  const links = await listRecords("network.cosmik.collectionLink");
-  const relevant = links.filter((l) => l.value.collection?.uri === SEMBLE_COLLECTION_URI);
+  const result = await callXrpc("dev.hatk.getRecords", {
+    collection: "network.cosmik.collectionLink",
+    limit: 100,
+  } as any);
+  const links = result.items as any[];
+  const relevant = links.filter((l) => l.value?.collection?.uri === SEMBLE_COLLECTION_URI);
   const resources: Resource[] = [];
 
   await Promise.all(
     relevant.map(async (link) => {
-      const cardUri = link.value.card?.uri;
+      const cardUri = link.value?.card?.uri;
       if (!cardUri) return;
-      const card = await getRecord("network.cosmik.card", extractRkey(cardUri));
+      let cardResult: any;
+      try {
+        cardResult = await callXrpc("dev.hatk.getRecord", { uri: cardUri });
+      } catch {
+        return;
+      }
+      const card = cardResult?.record;
       if (!card?.value?.content?.url) return;
       const meta = card.value.content.metadata ?? {};
       resources.push({

@@ -1,0 +1,17 @@
+{
+  "lexicon": 1,
+  "id": "network.cosmik.card",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "unknown" }
+        }
+      }
+    }
+  }
+}

@@ -4,12 +4,13 @@ const isProd = process.env.NODE_ENV === "production";
 const prodDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
 
 export default defineConfig({
-  relay: isProd ? "wss://bsky.network" : "ws://localhost:2583",
-  plc: isProd ? "https://plc.directory" : "http://localhost:2582",
+  relay: "wss://bsky.network",
+  plc: "https://plc.directory",
   port: 3000,
   databaseEngine: "sqlite",
   database: isProd ? "/data/hatk.db" : "data/hatk.db",
   backfill: {
+    repos: ["did:plc:giaakn4axmr5dhfnvha6r6wn"],
     parallelism: 5,
     fullNetwork: false,
   },

@@ -3,9 +3,9 @@
 // to avoid pulling in server-only dependencies.
 export type { XrpcSchema } from './hatk.generated.ts'
 import type { XrpcSchema } from './hatk.generated.ts'
-export type { DescribeCollections, DescribeFeeds, DescribeLabels, GetFeed, GetRecord, GetRecords, SearchRecords, UploadBlob } from './hatk.generated.ts'
+export type { CreateReport, DescribeCollections, DescribeFeeds, DescribeLabels, GetFeed, GetRecord, GetRecords, SearchRecords, UploadBlob, Card, CollectionLink, Document, RecordRegistry, CreateRecord, DeleteRecord, PutRecord, RepoRef, LabelDefinition, LabelLocale } from './hatk.generated.ts'
 
-const _procedures = new Set(['dev.hatk.createRecord', 'dev.hatk.deleteRecord', 'dev.hatk.putRecord'])
+const _procedures = new Set(['dev.hatk.createRecord', 'dev.hatk.createReport', 'dev.hatk.deleteRecord', 'dev.hatk.putRecord'])
 const _blobInputs = new Set(['dev.hatk.uploadBlob'])
 
 type CallArg<K extends keyof XrpcSchema> =
@@ -32,12 +32,13 @@ export async function callXrpc<K extends keyof XrpcSchema & string>(
     const blob = arg as Blob | ArrayBuffer
     const ct = blob instanceof Blob ? blob.type : 'application/octet-stream'
     const res = await _fetch(path, { method: 'POST', headers: { 'Content-Type': ct }, body: blob })
+    if (typeof window !== 'undefined' && res.status === 401) { const _b = await res.json().catch(() => ({})); const _h = _b.handle ?? getViewer()?.handle; window.location.href = _h ? `/oauth/login?handle=${encodeURIComponent(_h)}` : '/oauth/login'; return new Promise(() => {}) as any }
     if (!res.ok) throw new Error(`XRPC ${nsid} failed: ${res.status}`)
     return res.json() as Promise<OutputOf<K>>
   }
   if (_procedures.has(nsid)) {
     const res = await _fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(arg) })
-    if (typeof window !== 'undefined' && res.status === 401) { const _h = getViewer()?.handle; window.location.href = _h ? `/oauth/login?handle=${encodeURIComponent(_h)}` : '/oauth/login'; return new Promise(() => {}) as any }
+    if (typeof window !== 'undefined' && res.status === 401) { const _b = await res.json().catch(() => ({})); const _h = _b.handle ?? getViewer()?.handle; window.location.href = _h ? `/oauth/login?handle=${encodeURIComponent(_h)}` : '/oauth/login'; return new Promise(() => {}) as any }
     if (!res.ok) throw new Error(`XRPC ${nsid} failed: ${res.status}`)
     return res.json() as Promise<OutputOf<K>>
   }
@@ -48,7 +49,7 @@ export async function callXrpc<K extends keyof XrpcSchema & string>(
   const qs = params.toString()
   if (qs) path += `?${qs}`
   const res = await _fetch(path)
-  if (typeof window !== 'undefined' && res.status === 401) { window.location.href = '/oauth/login'; return new Promise(() => {}) as any }
+  if (typeof window !== 'undefined' && res.status === 401) { const _b = await res.json().catch(() => ({})); const _h = _b.handle ?? getViewer()?.handle; window.location.href = _h ? `/oauth/login?handle=${encodeURIComponent(_h)}` : '/oauth/login'; return new Promise(() => {}) as any }
   if (!res.ok) throw new Error(`XRPC ${nsid} failed: ${res.status}`)
   return res.json() as Promise<OutputOf<K>>
 }
